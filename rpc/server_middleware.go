@@ -6,6 +6,7 @@ import (
 
 	sdk "github.com/Conflux-Chain/go-conflux-sdk"
 	"github.com/openweb3/go-rpc-provider"
+	"github.com/scroll-tech/go-ethereum/ethclient"
 	"github.com/scroll-tech/rpc-gateway/node"
 	"github.com/scroll-tech/rpc-gateway/util/rate"
 	"github.com/scroll-tech/rpc-gateway/util/rpc/handlers"
@@ -85,6 +86,11 @@ func clientMiddleware(next rpc.HandleCallMsgFunc) rpc.HandleCallMsgFunc {
 			switch msg.Method {
 			case "eth_getLogs":
 				client, err = ethProvider.GetClientByIPGroup(ctx, node.GroupEthLogs)
+
+			// todo: provide different client type for scroll requests
+			case "scroll_getBlockResultByNumberOrHash":
+				client, err = ethProvider.GetClientByIP(ctx)
+
 			default:
 				client, err = ethProvider.GetClientByIP(ctx)
 			}
@@ -109,4 +115,9 @@ func GetCfxClientFromContext(ctx context.Context) sdk.ClientOperator {
 
 func GetEthClientFromContext(ctx context.Context) *node.Web3goClient {
 	return ctx.Value(ctxKeyClient).(*node.Web3goClient)
+}
+
+func GetScrollClientFromContext(ctx context.Context) *ethclient.Client {
+	// todo: this will fail
+	return ctx.Value(ctxKeyClient).(*ethclient.Client)
 }

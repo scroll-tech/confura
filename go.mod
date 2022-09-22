@@ -17,6 +17,7 @@ require (
 	github.com/openweb3/web3go v0.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/royeo/dingrobot v1.0.1-0.20191230075228-c90a788ca8fd
+	github.com/scroll-tech/go-ethereum v1.10.14-0.20220920070544-3a7da33cd53d
 	github.com/sirupsen/logrus v1.8.1
 	github.com/spf13/cobra v1.5.0
 	github.com/spf13/viper v1.10.0

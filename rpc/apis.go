@@ -121,6 +121,11 @@ func evmSpaceApis(clientProvider *node.EthClientProvider, option ...EthAPIOption
 			Version:   "1.0",
 			Service:   &parityAPI{},
 			Public:    false,
+		}, {
+			Namespace: "scroll",
+			Version:   "1.0",
+			Service:   &scrollAPI{},
+			Public:    false,
 		},
 	}, nil
 }
