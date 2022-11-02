@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"context"
+	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"sync"
 	"time"
 
@@ -10,6 +13,7 @@ import (
 	"github.com/spf13/viper"
 
 	viperutil "github.com/Conflux-Chain/go-conflux-util/viper"
+	gethrpc "github.com/ethereum/go-ethereum/rpc"
 	cmdutil "github.com/scroll-tech/rpc-gateway/cmd/util"
 	"github.com/scroll-tech/rpc-gateway/node"
 	"github.com/scroll-tech/rpc-gateway/rpc"
@@ -18,6 +22,7 @@ import (
 	"github.com/scroll-tech/rpc-gateway/util/rate"
 	"github.com/scroll-tech/rpc-gateway/util/relay"
 	rpcutil "github.com/scroll-tech/rpc-gateway/util/rpc"
+	"github.com/scroll-tech/rpc-gateway/util/whitelist"
 )
 
 var (
@@ -26,6 +31,7 @@ var (
 		cfxEnabled       bool
 		ethEnabled       bool
 		cfxBridgeEnabled bool
+		debugEnabled     bool
 	}
 
 	rpcCmd = &cobra.Command{
@@ -51,11 +57,15 @@ func init() {
 		&rpcOpt.cfxBridgeEnabled, "cfxBridge", false, "start core space bridge RPC server",
 	)
 
+	rpcCmd.Flags().BoolVar(
+		&rpcOpt.debugEnabled, "debug", false, "start debug space RPC server",
+	)
+
 	rootCmd.AddCommand(rpcCmd)
 }
 
 func startRpcService(*cobra.Command, []string) {
-	if !rpcOpt.cfxEnabled && !rpcOpt.ethEnabled && !rpcOpt.cfxBridgeEnabled {
+	if !rpcOpt.cfxEnabled && !rpcOpt.ethEnabled && !rpcOpt.cfxBridgeEnabled && !rpcOpt.debugEnabled {
 		logrus.Fatal("No RPC server specified")
 	}
 
@@ -75,6 +85,10 @@ func startRpcService(*cobra.Command, []string) {
 
 	if rpcOpt.cfxBridgeEnabled { // start core space bridge RPC
 		startNativeSpaceBridgeRpcServer(ctx, &wg)
+	}
+
+	if rpcOpt.debugEnabled { // start debug space RPC
+		startDebugSpaceRpcServer(ctx, &wg)
 	}
 
 	cmdutil.GracefulShutdown(&wg, cancel)
@@ -174,4 +188,54 @@ func startNativeSpaceBridgeRpcServer(ctx context.Context, wg *sync.WaitGroup) {
 
 	server := rpc.MustNewNativeSpaceBridgeServer(&config)
 	go server.MustServeGraceful(ctx, wg, config.Endpoint, rpcutil.ProtocolHttp)
+}
+
+// startDebugSpaceRpcServer starts RPC server for geth debug API
+func startDebugSpaceRpcServer(ctx context.Context, wg *sync.WaitGroup) {
+	httpEndpoint := viper.GetString("debugrpc.endpoint")
+	ethNodeRPCURL := viper.GetString("node.router.ethnoderpcurl")
+	logrus.Debug("Debug Space RPC server HTTP endpoint=", httpEndpoint, ", ethNodeRPCURL=", ethNodeRPCURL)
+	client, err := gethrpc.DialHTTP(ethNodeRPCURL)
+	if err != nil {
+		logrus.WithError(err).Fatal("Failed to create rpc client")
+	}
+	debugRouter = node.NewNodeRpcRouter(client)
+
+	http.Handle("/", &ForwardHandler{})
+	http.ListenAndServe(httpEndpoint, nil)
+}
+
+var debugRouter *node.NodeRpcRouter
+
+type ForwardHandler struct{}
+
+func (h *ForwardHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	ip := whitelist.GetIPFromRequestEnv(req)
+	logrus.Debug("remote IP: ", ip)
+	valid, err := whitelist.IsIPValid(ip)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if valid == false {
+		return //FIXME
+	}
+
+	forwardURL := debugRouter.Route(node.GroupDebugHttp, []byte(ip))
+	logrus.Debug("url: ", forwardURL)
+	u, err := url.Parse(forwardURL)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	proxy := httputil.ReverseProxy{
+		Director: func(req *http.Request) {
+			req.URL = u
+		},
+	}
+
+	proxy.ServeHTTP(w, req)
 }
