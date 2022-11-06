@@ -2,7 +2,6 @@ package whitelist
 
 import (
 	"encoding/json"
-	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/url"
@@ -34,11 +33,11 @@ func IsIPValid(ip string) (bool, error) {
 		return false, nil
 	}
 
-	cache_key := "whitelist-ip-" + ip
-	valid, found := whiteListCache.Get(cache_key)
+	cacheKey := "whitelist-ip-" + ip
+	cacheValue, found := whiteListCache.Get(cacheKey)
 	logrus.Debug("whitelist IP cache Get ip: ", ip, ", found: ", found, ", valid: ", valid)
 	if found {
-		return valid.(bool), nil
+		return cacheValue.(bool), nil
 	}
 
 	params := url.Values{}
@@ -46,12 +45,14 @@ func IsIPValid(ip string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
 	params.Set("accept", "application/json")
 	params.Set("ip", ip)
 	Url.RawQuery = params.Encode()
 	urlPath := Url.String()
 	resp, err := http.Get(urlPath)
+	if err != nil {
+		return false, err
+	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -65,12 +66,9 @@ func IsIPValid(ip string) (bool, error) {
 	}
 
 	debuggerList, ok := data["debugger"]
-	if !ok {
-		return false, errors.New("Parse Json fail, no debugger")
-	}
-	ok = debuggerList != nil
-	whiteListCache.Set(cache_key, ok, cache.DefaultExpiration)
-	return ok, nil
+	isValid := (ok == true) && (debuggerList != nil)
+	whiteListCache.Set(cacheKey, isValid, cache.DefaultExpiration)
+	return isValid, nil
 }
 
 func GetIPFromRequestEnv(req *http.Request) string {
