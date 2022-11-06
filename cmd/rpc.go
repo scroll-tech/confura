@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -219,13 +221,37 @@ func (h *ForwardHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if valid == false {
-		return //FIXME
+		body, err := ioutil.ReadAll(req.Body)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		var data map[string]interface{}
+		err = json.Unmarshal(body, &data)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		ip, _ := data["ip"]
+		rpcVer, _ := data["jsonrpc"]
+		method, _ := data["method"]
+		w.Header().Set("ip", ip.(string))
+		w.Header().Set("jsonrpc", rpcVer.(string))
+		w.Header().Set("method", method.(string))
+		// Return `Method not supported` (code=-32004) if invalid. Reference:
+		// https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1474.md
+		errMap := map[string]interface{}{"code": -32004, "message": "Operation not permitted"}
+		if jsonStr, err := json.Marshal(errMap); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		} else {
+			w.Header().Set("error", string(jsonStr))
+		}
+		return
 	}
 
 	forwardURL := debugRouter.Route(node.GroupDebugHttp, []byte(ip))
 	logrus.Debug("url: ", forwardURL)
 	u, err := url.Parse(forwardURL)
-
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

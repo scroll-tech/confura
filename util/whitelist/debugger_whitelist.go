@@ -25,17 +25,13 @@ func init() {
 
 // IsIPValid checks if the debugger IP is in the whitelist through the whitelist backend
 func IsIPValid(ip string) (bool, error) {
-	// in dev environment
-	if whiteListURL == "" {
-		return true, nil
-	}
 	if ip == "unknown_ip" {
 		return false, nil
 	}
 
 	cacheKey := "whitelist-ip-" + ip
 	cacheValue, found := whiteListCache.Get(cacheKey)
-	logrus.Debug("whitelist IP cache Get ip: ", ip, ", found: ", found, ", valid: ", valid)
+	logrus.Debug("whitelist IP cache Get ip: ", ip, ", found: ", found, ", cacheValue: ", cacheValue)
 	if found {
 		return cacheValue.(bool), nil
 	}
@@ -58,7 +54,6 @@ func IsIPValid(ip string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-
 	var data map[string]interface{}
 	err = json.Unmarshal(body, &data)
 	if err != nil {
