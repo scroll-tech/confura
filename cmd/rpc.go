@@ -213,7 +213,7 @@ type ForwardHandler struct{}
 
 func (h *ForwardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ip := whitelist.GetClientIPFromRequest(r)
-	logrus.Debug("remote IP: ", ip)
+	logrus.Debug("Debug Space RPC client IP from request: ", ip)
 	valid, err := whitelist.IsIPValid(ip)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -232,7 +232,7 @@ func (h *ForwardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	forwardURL := debugRouter.Route(node.GroupDebugHttp, []byte(ip))
-	logrus.Debug("url: ", forwardURL)
+	logrus.Debug("Debug Space RPC debug node URL: ", forwardURL)
 	u, err := url.Parse(forwardURL)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -244,6 +244,5 @@ func (h *ForwardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			r.URL = u
 		},
 	}
-
 	proxy.ServeHTTP(w, r)
 }

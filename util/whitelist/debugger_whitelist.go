@@ -72,7 +72,7 @@ func IsIPValid(ip string) (bool, error) {
 func GetInvalidIPErrorMsg(reqByte []byte) ([]byte, error) {
 	var reqs []ReqBody // for batch request
 	var req ReqBody    // for single request
-	if isBatchRequest(reqByte, reqs) {
+	if isBatchRequest(reqByte, &reqs) {
 		var resps []InvalidIPRespBody
 		for _, req := range reqs {
 			var resp InvalidIPRespBody
@@ -84,7 +84,7 @@ func GetInvalidIPErrorMsg(reqByte []byte) ([]byte, error) {
 			resps = append(resps, resp)
 		}
 		return json.Marshal(resps)
-	} else if isSingleRequest(reqByte, req) {
+	} else if isSingleRequest(reqByte, &req) {
 		var resp InvalidIPRespBody
 		resp.ID = req.ID
 		resp.JsonRPC = req.JsonRPC
@@ -115,13 +115,13 @@ type InvalidIPErrMsg struct {
 	Message string `json:"message,omitempty"`
 }
 
-func isBatchRequest(reqByte []byte, reqs []ReqBody) bool {
-	err := json.Unmarshal(reqByte, &reqs)
+func isBatchRequest(reqByte []byte, reqs *[]ReqBody) bool {
+	err := json.Unmarshal(reqByte, reqs)
 	return err == nil
 }
 
-func isSingleRequest(reqByte []byte, req ReqBody) bool {
-	err := json.Unmarshal(reqByte, &req)
+func isSingleRequest(reqByte []byte, req *ReqBody) bool {
+	err := json.Unmarshal(reqByte, req)
 	return err == nil
 }
 
