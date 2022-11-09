@@ -25,7 +25,7 @@ func init() {
 	whiteListURL = os.Getenv("WHITELIST_BACKEND_URL")
 	proxyCount, err := strconv.Atoi(os.Getenv("PROXY_COUNT"))
 	if err != nil || proxyCount < 0 {
-		proxyCount = 0
+		proxyCount = 1000000 // fetch first IP in X-Forwarded-For
 	}
 	logrus.Info("whiteListURL: ", whiteListURL, ", proxyCount: ", proxyCount)
 }
