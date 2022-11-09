@@ -227,7 +227,7 @@ func (h *ForwardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		io.WriteString(w, string(errMsg))
+		io.WriteString(w, string(errMsg)+"\n")
 		return
 	}
 
