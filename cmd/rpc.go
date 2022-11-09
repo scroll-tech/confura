@@ -199,7 +199,7 @@ func startDebugSpaceRpcServer(ctx context.Context, wg *sync.WaitGroup) {
 	logrus.Debug("Debug Space RPC server HTTP endpoint=", httpEndpoint, ", ethNodeRPCURL=", ethNodeRPCURL)
 	client, err := gethrpc.DialHTTP(ethNodeRPCURL)
 	if err != nil {
-		logrus.WithError(err).Fatal("Failed to create rpc client for debugSpaceRpcServer")
+		logrus.WithError(err).Panic("Failed to create rpc client for debugSpaceRpcServer")
 	}
 	debugRouter = node.NewNodeRpcRouter(client)
 
