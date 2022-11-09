@@ -64,6 +64,64 @@ func IsIPValid(ip string) (bool, error) {
 	return isValid, nil
 }
 
+// GetInvalidIPErrorMsg return `Method not supported` (code=-32004) if invalid. Reference:
+// https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1474.md
+func GetInvalidIPErrorMsg(reqByte []byte) ([]byte, error) {
+	var reqs []ReqBody // for batch request
+	var req ReqBody    // for single request
+	if isBatchRequest(reqByte, reqs) {
+		var resps []InvalidIPRespBody
+		for _, req := range reqs {
+			var resp InvalidIPRespBody
+			resp.ID = req.ID
+			resp.JsonRPC = req.JsonRPC
+			resp.Method = req.Method
+			resp.Error.Code = -32004
+			resp.Error.Message = "Operation not permitted"
+			resps = append(resps, resp)
+		}
+		return json.Marshal(resps)
+	} else if isSingleRequest(reqByte, req) {
+		var resp InvalidIPRespBody
+		resp.ID = req.ID
+		resp.JsonRPC = req.JsonRPC
+		resp.Method = req.Method
+		resp.Error.Code = -32004
+		resp.Error.Message = "Operation not permitted"
+		return json.Marshal(resp)
+	}
+	logrus.Debug("invalid request reqByte: ", string(reqByte))
+	return []byte("invalid request " + string(reqByte)), nil
+}
+
+type ReqBody struct {
+	ID      interface{} `json:"id,omitempty"`
+	JsonRPC string      `json:"jsonrpc,omitempty"`
+	Method  string      `json:"method,omitempty"`
+}
+
+type InvalidIPRespBody struct {
+	ID      interface{}     `json:"id,omitempty"`
+	JsonRPC string          `json:"jsonrpc,omitempty"`
+	Method  string          `json:"method,omitempty"`
+	Error   InvalidIPErrMsg `json:"error,omitempty"`
+}
+
+type InvalidIPErrMsg struct {
+	Code    int64  `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
+}
+
+func isBatchRequest(reqByte []byte, reqs []ReqBody) bool {
+	err := json.Unmarshal(reqByte, &reqs)
+	return err == nil
+}
+
+func isSingleRequest(reqByte []byte, req ReqBody) bool {
+	err := json.Unmarshal(reqByte, &req)
+	return err == nil
+}
+
 func GetIPFromRequestEnv(req *http.Request) string {
 	fwdAddress := req.Header.Get("X-Forwarded-For")
 	if fwdAddress != "" {

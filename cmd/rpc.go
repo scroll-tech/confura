@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httputil"
@@ -222,26 +222,12 @@ func (h *ForwardHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	if valid == false {
 		body, _ := ioutil.ReadAll(req.Body)
-		var data map[string]interface{}
-		err = json.Unmarshal(body, &data)
+		errMsg, err := whitelist.GetInvalidIPErrorMsg(body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		id, _ := data["id"]
-		rpcVer, _ := data["jsonrpc"]
-		method, _ := data["method"]
-		w.Header().Set("id", id.(string))
-		w.Header().Set("jsonrpc", rpcVer.(string))
-		w.Header().Set("method", method.(string))
-		// Return `Method not supported` (code=-32004) if invalid. Reference:
-		// https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1474.md
-		errMap := map[string]interface{}{"code": -32004, "message": "Operation not permitted"}
-		if jsonStr, err := json.Marshal(errMap); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		} else {
-			w.Header().Set("error", string(jsonStr))
-		}
+		io.WriteString(w, string(errMsg))
 		return
 	}
 
