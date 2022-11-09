@@ -47,13 +47,11 @@ func IsIPValid(ip string) (bool, error) {
 	urlPath := Url.String()
 	resp, err := http.Get(urlPath)
 	if err != nil {
+		logrus.WithError(err).Errorf("Fail to get url (%v)", urlPath)
 		return false, err
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return false, err
-	}
+	body, _ := ioutil.ReadAll(resp.Body)
 	var data map[string]interface{}
 	err = json.Unmarshal(body, &data)
 	if err != nil {

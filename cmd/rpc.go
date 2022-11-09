@@ -199,7 +199,7 @@ func startDebugSpaceRpcServer(ctx context.Context, wg *sync.WaitGroup) {
 	logrus.Debug("Debug Space RPC server HTTP endpoint=", httpEndpoint, ", ethNodeRPCURL=", ethNodeRPCURL)
 	client, err := gethrpc.DialHTTP(ethNodeRPCURL)
 	if err != nil {
-		logrus.WithError(err).Fatal("Failed to create rpc client")
+		logrus.WithError(err).Fatal("Failed to create rpc client for debugSpaceRpcServer")
 	}
 	debugRouter = node.NewNodeRpcRouter(client)
 
@@ -221,21 +221,17 @@ func (h *ForwardHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if valid == false {
-		body, err := ioutil.ReadAll(req.Body)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+		body, _ := ioutil.ReadAll(req.Body)
 		var data map[string]interface{}
 		err = json.Unmarshal(body, &data)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		ip, _ := data["ip"]
+		id, _ := data["id"]
 		rpcVer, _ := data["jsonrpc"]
 		method, _ := data["method"]
-		w.Header().Set("ip", ip.(string))
+		w.Header().Set("id", id.(string))
 		w.Header().Set("jsonrpc", rpcVer.(string))
 		w.Header().Set("method", method.(string))
 		// Return `Method not supported` (code=-32004) if invalid. Reference:
