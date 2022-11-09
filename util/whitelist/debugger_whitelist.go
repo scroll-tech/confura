@@ -23,10 +23,11 @@ var (
 
 func init() {
 	whiteListURL = os.Getenv("WHITELIST_BACKEND_URL")
-	proxyCount, err := strconv.Atoi(os.Getenv("PROXY_COUNT"))
-	if err != nil || proxyCount < 0 {
-		proxyCount = 1000000 // fetch first IP in X-Forwarded-For
+	envProxyCount, err := strconv.Atoi(os.Getenv("PROXY_COUNT"))
+	if err != nil || envProxyCount < 0 {
+		envProxyCount = 1000000 // fetch first IP in X-Forwarded-For
 	}
+	proxyCount = envProxyCount
 	logrus.Info("whiteListURL: ", whiteListURL, ", proxyCount: ", proxyCount)
 }
 
@@ -40,14 +41,15 @@ func IsIPValid(ip string) (bool, error) {
 	}
 
 	params := url.Values{}
-	Url, err := url.Parse(whiteListURL + "api/get_debugger")
+	getDebuggerURL, err := url.Parse(whiteListURL + "/api/get_debugger")
+	logrus.Debug("getDebuggerURL: ", getDebuggerURL)
 	if err != nil {
 		return false, err
 	}
 	params.Set("accept", "application/json")
 	params.Set("ip", ip)
-	Url.RawQuery = params.Encode()
-	urlPath := Url.String()
+	getDebuggerURL.RawQuery = params.Encode()
+	urlPath := getDebuggerURL.String()
 	resp, err := http.Get(urlPath)
 	if err != nil {
 		logrus.WithError(err).Errorf("Fail to get url (%v)", urlPath)
@@ -126,6 +128,7 @@ func isSingleRequest(reqByte []byte, req *ReqBody) bool {
 }
 
 func GetClientIPFromRequest(r *http.Request) string {
+	logrus.Debug("proxyCount: ", proxyCount)
 	if proxyCount > 0 {
 		xForwardedFor := r.Header.Get("X-Forwarded-For")
 		xRealIP := r.Header.Get("X-Real-Ip")
