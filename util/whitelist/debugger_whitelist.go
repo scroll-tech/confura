@@ -3,9 +3,11 @@ package whitelist
 import (
 	"encoding/json"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,19 +18,20 @@ import (
 var (
 	whiteListURL   string
 	whiteListCache = cache.New(5*time.Minute, 5*time.Minute)
+	proxyCount     int
 )
 
 func init() {
 	whiteListURL = os.Getenv("WHITELIST_BACKEND_URL")
-	logrus.Info("whiteListURL: ", whiteListURL)
+	proxyCount, err := strconv.Atoi(os.Getenv("PROXY_COUNT"))
+	if err != nil || proxyCount < 0 {
+		proxyCount = 0
+	}
+	logrus.Info("whiteListURL: ", whiteListURL, ", proxyCount: ", proxyCount)
 }
 
 // IsIPValid checks if the debugger IP is in the whitelist through the whitelist backend
 func IsIPValid(ip string) (bool, error) {
-	if ip == "unknown_ip" {
-		return false, nil
-	}
-
 	cacheKey := "whitelist-ip-" + ip
 	cacheValue, found := whiteListCache.Get(cacheKey)
 	logrus.Debug("whitelist IP cache Get ip: ", ip, ", found: ", found, ", cacheValue: ", cacheValue)
@@ -122,18 +125,29 @@ func isSingleRequest(reqByte []byte, req ReqBody) bool {
 	return err == nil
 }
 
-func GetIPFromRequestEnv(req *http.Request) string {
-	fwdAddress := req.Header.Get("X-Forwarded-For")
-	if fwdAddress != "" {
-		return strings.ToLower(strings.Split(fwdAddress, ", ")[0])
+func GetClientIPFromRequest(r *http.Request) string {
+	if proxyCount > 0 {
+		xForwardedFor := r.Header.Get("X-Forwarded-For")
+		xRealIP := r.Header.Get("X-Real-Ip")
+
+		if xForwardedFor != "" {
+			xForwardedForParts := strings.Split(xForwardedFor, ",")
+			// Avoid reading the user's forged request header by configuring the count of reverse proxies
+			partIndex := len(xForwardedForParts) - proxyCount
+			if partIndex < 0 {
+				partIndex = 0
+			}
+			return strings.TrimSpace(xForwardedForParts[partIndex])
+		}
+
+		if xRealIP != "" {
+			return strings.TrimSpace(xRealIP)
+		}
 	}
-	ip := req.Header.Get("X-Real-IP")
-	if ip != "" {
-		return strings.ToLower(ip)
+
+	remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		remoteIP = r.RemoteAddr
 	}
-	ip = strings.Split(req.RemoteAddr, ":")[0]
-	if ip != "" {
-		return strings.ToLower(ip)
-	}
-	return "unknown_ip"
+	return remoteIP
 }

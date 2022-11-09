@@ -211,8 +211,8 @@ var debugRouter *node.NodeRpcRouter
 
 type ForwardHandler struct{}
 
-func (h *ForwardHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	ip := whitelist.GetIPFromRequestEnv(req)
+func (h *ForwardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ip := whitelist.GetClientIPFromRequest(r)
 	logrus.Debug("remote IP: ", ip)
 	valid, err := whitelist.IsIPValid(ip)
 	if err != nil {
@@ -221,7 +221,7 @@ func (h *ForwardHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if valid == false {
-		body, _ := ioutil.ReadAll(req.Body)
+		body, _ := ioutil.ReadAll(r.Body)
 		errMsg, err := whitelist.GetInvalidIPErrorMsg(body)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -240,10 +240,10 @@ func (h *ForwardHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	proxy := httputil.ReverseProxy{
-		Director: func(req *http.Request) {
-			req.URL = u
+		Director: func(r *http.Request) {
+			r.URL = u
 		},
 	}
 
-	proxy.ServeHTTP(w, req)
+	proxy.ServeHTTP(w, r)
 }
