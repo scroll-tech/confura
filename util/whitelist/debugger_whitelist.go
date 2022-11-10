@@ -25,7 +25,7 @@ func init() {
 	whiteListURL = os.Getenv("WHITELIST_BACKEND_URL")
 	envProxyCount, err := strconv.Atoi(os.Getenv("PROXY_COUNT"))
 	if err != nil || envProxyCount < 0 {
-		envProxyCount = 1000000 // fetch first IP in X-Forwarded-For
+		envProxyCount = 0 // fetch RemoteAddr
 	}
 	proxyCount = envProxyCount
 	logrus.Info("whiteListURL: ", whiteListURL, ", proxyCount: ", proxyCount)
