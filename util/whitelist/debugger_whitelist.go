@@ -32,41 +32,46 @@ func init() {
 }
 
 // IsIPValid checks if the debugger IP is in the whitelist through the whitelist backend
-func IsIPValid(ip string) (bool, error) {
+func IsIPValid(ip string) bool {
+	if whiteListURL == "" {
+		return true
+	}
+	ip = strings.ToLower(ip)
 	cacheKey := "whitelist-ip-" + ip
 	cacheValue, found := whiteListCache.Get(cacheKey)
 	logrus.Debug("whitelist IP cache Get ip: ", ip, ", found: ", found, ", cacheValue: ", cacheValue)
 	if found {
-		return cacheValue.(bool), nil
+		return cacheValue.(bool)
 	}
 
 	params := url.Values{}
 	getDebuggerURL, err := url.Parse(whiteListURL + "/api/get_debugger")
 	logrus.Debug("getDebuggerURL: ", getDebuggerURL)
 	if err != nil {
-		return false, err
+		logrus.Error(err)
+		return false
 	}
 	params.Set("accept", "application/json")
 	params.Set("ip", ip)
 	getDebuggerURL.RawQuery = params.Encode()
-	urlPath := getDebuggerURL.String()
-	resp, err := http.Get(urlPath)
+	resp, err := http.Get(getDebuggerURL.String())
 	if err != nil {
-		logrus.WithError(err).Errorf("Fail to get url (%v)", urlPath)
-		return false, err
+		logrus.Error(err)
+		return false
 	}
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 	var data map[string]interface{}
 	err = json.Unmarshal(body, &data)
 	if err != nil {
-		return false, err
+		logrus.Error(err)
+		return false
 	}
 
 	debuggerList, ok := data["debugger"]
 	isValid := (ok == true) && (debuggerList != nil)
 	whiteListCache.Set(cacheKey, isValid, cache.DefaultExpiration)
-	return isValid, nil
+	return isValid
 }
 
 // GetInvalidIPErrorMsg return `Method not supported` (code=-32004) if invalid. Reference:

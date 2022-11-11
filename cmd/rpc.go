@@ -214,11 +214,7 @@ type ForwardHandler struct{}
 func (h *ForwardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ip := whitelist.GetClientIPFromRequest(r)
 	logrus.Debug("Debug Space RPC client IP from request: ", ip)
-	valid, err := whitelist.IsIPValid(ip)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	valid := whitelist.IsIPValid(ip)
 
 	if valid == false {
 		body, _ := ioutil.ReadAll(r.Body)
