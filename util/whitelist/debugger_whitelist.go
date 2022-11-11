@@ -136,13 +136,15 @@ func GetClientIPFromRequest(r *http.Request) string {
 	logrus.Debug("proxyCount: ", proxyCount)
 	if proxyCount > 0 {
 		xForwardedFor := r.Header.Get("X-Forwarded-For")
-		xForwardedForParts := strings.Split(xForwardedFor, ",")
-		// Avoid reading the user's forged request header by configuring the count of reverse proxies
-		partIndex := len(xForwardedForParts) - proxyCount
-		if partIndex < 0 {
-			partIndex = 0
+		if xForwardedFor != "" {
+			xForwardedForParts := strings.Split(xForwardedFor, ",")
+			// Avoid reading the user's forged request header by configuring the count of reverse proxies
+			partIndex := len(xForwardedForParts) - proxyCount
+			if partIndex < 0 {
+				partIndex = 0
+			}
+			return strings.TrimSpace(xForwardedForParts[partIndex])
 		}
-		return strings.TrimSpace(xForwardedForParts[partIndex])
 	}
 
 	remoteIP, _, err := net.SplitHostPort(r.RemoteAddr)
