@@ -203,7 +203,7 @@ func startDebugSpaceRpcServer(ctx context.Context, wg *sync.WaitGroup) {
 	}
 	debugRouter = node.NewNodeRpcRouter(client)
 
-	http.Handle("/", &ForwardHandler{})
+	http.Handle("/", maxBytesHandler(&ForwardHandler{}, 10*1024*1024))
 	http.ListenAndServe(httpEndpoint, nil)
 }
 
@@ -241,4 +241,13 @@ func (h *ForwardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		},
 	}
 	proxy.ServeHTTP(w, r)
+}
+
+// maxBytesHandler returns a Handler that runs h with its ResponseWriter and Request.Body wrapped by a MaxBytesReader.
+func maxBytesHandler(h http.Handler, n int64) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r2 := *r
+		r2.Body = http.MaxBytesReader(w, r.Body, n)
+		h.ServeHTTP(w, &r2)
+	})
 }
