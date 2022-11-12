@@ -77,12 +77,12 @@ func IsIPValid(ip string) bool {
 // GetInvalidIPErrorMsg return `Method not supported` (code=-32004) if invalid. Reference:
 // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-1474.md
 func GetInvalidIPErrorMsg(reqByte []byte) ([]byte, error) {
-	var reqs []ReqBody // for batch request
-	var req ReqBody    // for single request
+	var reqs []ReqPayload // for batch request
+	var req ReqPayload    // for single request
 	if isBatchRequest(reqByte, &reqs) {
-		var resps []InvalidIPRespBody
+		var resps []InvalidIPRespPayload
 		for _, req := range reqs {
-			var resp InvalidIPRespBody
+			var resp InvalidIPRespPayload
 			resp.ID = req.ID
 			resp.JsonRPC = req.JsonRPC
 			resp.Method = req.Method
@@ -92,7 +92,7 @@ func GetInvalidIPErrorMsg(reqByte []byte) ([]byte, error) {
 		}
 		return json.Marshal(resps)
 	} else if isSingleRequest(reqByte, &req) {
-		var resp InvalidIPRespBody
+		var resp InvalidIPRespPayload
 		resp.ID = req.ID
 		resp.JsonRPC = req.JsonRPC
 		resp.Method = req.Method
@@ -104,13 +104,13 @@ func GetInvalidIPErrorMsg(reqByte []byte) ([]byte, error) {
 	return []byte("invalid request " + string(reqByte)), nil
 }
 
-type ReqBody struct {
+type ReqPayload struct {
 	ID      interface{} `json:"id,omitempty"`
 	JsonRPC string      `json:"jsonrpc,omitempty"`
 	Method  string      `json:"method,omitempty"`
 }
 
-type InvalidIPRespBody struct {
+type InvalidIPRespPayload struct {
 	ID      interface{}     `json:"id,omitempty"`
 	JsonRPC string          `json:"jsonrpc,omitempty"`
 	Method  string          `json:"method,omitempty"`
@@ -122,12 +122,12 @@ type InvalidIPErrMsg struct {
 	Message string `json:"message,omitempty"`
 }
 
-func isBatchRequest(reqByte []byte, reqs *[]ReqBody) bool {
+func isBatchRequest(reqByte []byte, reqs *[]ReqPayload) bool {
 	err := json.Unmarshal(reqByte, reqs)
 	return err == nil
 }
 
-func isSingleRequest(reqByte []byte, req *ReqBody) bool {
+func isSingleRequest(reqByte []byte, req *ReqPayload) bool {
 	err := json.Unmarshal(reqByte, req)
 	return err == nil
 }

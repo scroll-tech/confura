@@ -212,6 +212,11 @@ var debugRouter *node.NodeRpcRouter
 type ForwardHandler struct{}
 
 func (h *ForwardHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Get Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	ip := whitelist.GetClientIPFromRequest(r)
 	logrus.Debug("Debug Space RPC client IP from request: ", ip)
 	valid := whitelist.IsIPValid(ip)
