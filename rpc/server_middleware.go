@@ -93,7 +93,12 @@ func clientMiddleware(next rpc.HandleCallMsgFunc) rpc.HandleCallMsgFunc {
 					client, err = ethProvider.GetClientByIP(ctx)
 				}
 			} else {
-				client, err = ethProvider.GetClientRandom()
+				switch msg.Method{
+				case "eth_getLogs":
+					client, err = ethProvider.GetClientRandomByGroup(node.GroupEthLogs)
+				default:
+					client, err = ethProvider.GetClientRandom()
+				}
 			}
 		} else {
 			return next(ctx, msg)
