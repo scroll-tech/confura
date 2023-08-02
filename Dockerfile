@@ -5,8 +5,8 @@ RUN mkdir /build
 WORKDIR /build
 COPY go.mod go.sum ./
 # you may use `GOPROXY` to speedup in Mainland China.
-# RUN  GOPROXY=https://goproxy.cn,direct go mod download
-RUN go mod download
+# ENV GOPROXY=https://goproxy.cn,direct
+RUN go mod tidy
 COPY . .
 RUN go build -o confura .
 
