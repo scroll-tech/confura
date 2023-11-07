@@ -16,6 +16,7 @@ import (
 	"github.com/scroll-tech/rpc-gateway/rpc/cache"
 	"github.com/scroll-tech/rpc-gateway/rpc/handler"
 	"github.com/scroll-tech/rpc-gateway/store"
+	"github.com/scroll-tech/rpc-gateway/types"
 	"github.com/scroll-tech/rpc-gateway/util"
 	"github.com/scroll-tech/rpc-gateway/util/metrics"
 	"github.com/sirupsen/logrus"
@@ -198,11 +199,11 @@ func (api *ethAPI) GasPrice(ctx context.Context) (*hexutil.Big, error) {
 
 // GetStorageAt returns the value from a storage position at a given address.
 func (api *ethAPI) GetStorageAt(
-	ctx context.Context, address common.Address, location *hexutil.Big, blockNumOrHash *web3Types.BlockNumberOrHash,
+	ctx context.Context, address common.Address, location *types.Location, blockNumOrHash *web3Types.BlockNumberOrHash,
 ) (common.Hash, error) {
 	w3c := GetEthClientFromContext(ctx)
 	api.inputBlockMetric.Update2(blockNumOrHash, "eth_getStorageAt", w3c.Eth)
-	return w3c.Eth.StorageAt(address, (*big.Int)(location), blockNumOrHash)
+	return w3c.Eth.StorageAt(address, location.ToInt(), blockNumOrHash)
 }
 
 // GetCode returns the contract code of the given account.

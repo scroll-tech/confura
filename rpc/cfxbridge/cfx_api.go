@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/openweb3/web3go"
 	"github.com/openweb3/web3go/client"
+	rpcgtypes "github.com/scroll-tech/rpc-gateway/types"
 )
 
 type CfxAPI struct {
@@ -80,8 +81,8 @@ func (api *CfxAPI) GetCode(ctx context.Context, contract EthAddress, bn *EthBloc
 	return api.eth.CodeAt(contract.value, bn.ToArg())
 }
 
-func (api *CfxAPI) GetStorageAt(ctx context.Context, address EthAddress, position *hexutil.Big, bn *EthBlockNumber) (common.Hash, error) {
-	return api.eth.StorageAt(address.value, position.ToInt(), bn.ToArg())
+func (api *CfxAPI) GetStorageAt(ctx context.Context, address EthAddress, location *rpcgtypes.Location, bn *EthBlockNumber) (common.Hash, error) {
+	return api.eth.StorageAt(address.value, location.ToInt(), bn.ToArg())
 }
 
 func (api *CfxAPI) GetStorageRoot(ctx context.Context, address EthAddress, bn *EthBlockNumber) (*types.StorageRoot, error) {
