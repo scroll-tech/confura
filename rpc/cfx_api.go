@@ -6,13 +6,13 @@ import (
 	sdk "github.com/Conflux-Chain/go-conflux-sdk"
 	"github.com/Conflux-Chain/go-conflux-sdk/types"
 	postypes "github.com/Conflux-Chain/go-conflux-sdk/types/pos"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/pkg/errors"
 	"github.com/scroll-tech/rpc-gateway/node"
 	"github.com/scroll-tech/rpc-gateway/rpc/cache"
 	"github.com/scroll-tech/rpc-gateway/rpc/handler"
 	"github.com/scroll-tech/rpc-gateway/store"
-	rpcgtypes "github.com/scroll-tech/rpc-gateway/types"
 	"github.com/scroll-tech/rpc-gateway/util"
 	"github.com/scroll-tech/rpc-gateway/util/metrics"
 	"github.com/scroll-tech/rpc-gateway/util/relay"
@@ -116,10 +116,10 @@ func (api *cfxAPI) GetCode(ctx context.Context, contract types.Address, epoch *t
 	return cfx.GetCode(contract, toSlice(epoch)...)
 }
 
-func (api *cfxAPI) GetStorageAt(ctx context.Context, address types.Address, location *rpcgtypes.Location, epoch *types.Epoch) (hexutil.Bytes, error) {
+func (api *cfxAPI) GetStorageAt(ctx context.Context, address types.Address, key string, epoch *types.Epoch) (hexutil.Bytes, error) {
 	cfx := GetCfxClientFromContext(ctx)
 	api.inputEpochMetric.Update(epoch, "cfx_getStorageAt", cfx)
-	return cfx.GetStorageAt(address, (*hexutil.Big)(location), toSlice(epoch)...)
+	return cfx.GetStorageAt(address, (*hexutil.Big)(common.HexToHash(key).Big()), toSlice(epoch)...)
 }
 
 func (api *cfxAPI) GetStorageRoot(ctx context.Context, address types.Address, epoch *types.Epoch) (*types.StorageRoot, error) {
